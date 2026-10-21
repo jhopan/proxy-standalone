@@ -37,13 +37,13 @@ export const HAS_SERVICE_KEY = Boolean(env.SUPABASE_SERVICE_KEY);
 
 export const CONFIG = {
   // Batas concurrency saat cek proxy (pembatas socket OS)
-  concurrency: Number(env.PROXY_CONCURRENCY || 60),
+  concurrency: Number(env.PROXY_CONCURRENCY || 120),
   // Timeout TCP connect (ms)
-  connectTimeout: Number(env.PROXY_CONNECT_TIMEOUT || 8000),
+  connectTimeout: Number(env.PROXY_CONNECT_TIMEOUT || 5000),
   // Timeout keseluruhan per proxy (ms)
-  totalTimeout: Number(env.PROXY_TOTAL_TIMEOUT || 15000),
+  totalTimeout: Number(env.PROXY_TOTAL_TIMEOUT || 10000),
   // Timeout HTTP CONNECT test (ms)
-  httpTimeout: Number(env.PROXY_HTTP_TIMEOUT || 12000),
+  httpTimeout: Number(env.PROXY_HTTP_TIMEOUT || 8000),
   // Ambil sample acak dari DB (0 = semua)
   sampleSize: Number(env.PROXY_SAMPLE || 0),
   // Batch size untuk update Supabase

@@ -2,21 +2,39 @@
 // Format list: satu "ip:port" atau "ip" per baris (port default 443).
 
 export const SOURCES = [
-  { id: "speedx-http", protocol: "http", url: "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt", port: "8080" },
-  { id: "speedx-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt", port: "1080" },
-  { id: "monosans-http", protocol: "http", url: "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt", port: "8080" },
-  { id: "monosans-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt", port: "1080" },
-  { id: "proxy4parsing-http", protocol: "http", url: "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/http.txt", port: "8080" },
-  { id: "proxy4parsing-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/proxies/socks4.txt", port: "1080" },
-  { id: "mmpx12-http", protocol: "http", url: "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt", port: "8080" },
-  { id: "mmpx12-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks4.txt", port: "1080" },
-  { id: "zloi-http", protocol: "http", url: "https://raw.githubusercontent.com/zloi-user/hideip.me/main/http.txt", port: "8080" },
-  { id: "zloi-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt", port: "1080" },
-  { id: "roosterkid-https", protocol: "http", url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt", port: "443" },
-  { id: "jetkai", protocol: "http", url: "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt", port: "8080" },
-  { id: "clarketm", protocol: "http", url: "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt", port: "8080" },
-  { id: "proxifly", protocol: "http", url: "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt", port: "8080" },
+  // --- Tier 1: high yield (hasil benchmark 21 Okt 2026) ---
+  // ALIILAPRO: 55% SOCKS5 hidup, 2600 proxy, di-refresh harian
+  { id: "aliilapro-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/socks5.txt", port: "1080", yield: 0.55 },
+  { id: "aliilapro-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/socks4.txt", port: "1080", yield: 0.30 },
+  { id: "aliilapro-http", protocol: "http", url: "https://raw.githubusercontent.com/ALIILAPRO/Proxy/main/http.txt", port: "8080", yield: 0.02 },
+  // ShiftyTR: 30% SOCKS5 hidup, kecil tapi segar
+  { id: "shiftytr-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks5.txt", port: "1080", yield: 0.30 },
+  { id: "shiftytr-http", protocol: "http", url: "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt", port: "8080", yield: 0.02 },
+
+  // --- Tier 2: volume besar, yield rendah ---
+  { id: "hookzof-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt", port: "1080", yield: 0.05 },
+  { id: "ercin-http", protocol: "http", url: "https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/http.txt", port: "8080", yield: 0.08 },
+  { id: "speedx-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt", port: "1080", yield: 0.03 },
+  { id: "speedx-http", protocol: "http", url: "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt", port: "8080", yield: 0.02 },
+  { id: "monosans-socks5", protocol: "socks5", url: "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt", port: "1080", yield: 0.03 },
+  { id: "monosans-http", protocol: "http", url: "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt", port: "8080", yield: 0.02 },
+  { id: "proxy4parsing-http", protocol: "http", url: "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/http.txt", port: "8080", yield: 0.01 },
+  { id: "mmpx12-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks4.txt", port: "1080", yield: 0.03 },
+  { id: "mmpx12-http", protocol: "http", url: "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt", port: "8080", yield: 0.02 },
+  { id: "zloi-socks4", protocol: "socks4", url: "https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt", port: "1080", yield: 0.03 },
+  { id: "zloi-http", protocol: "http", url: "https://raw.githubusercontent.com/zloi-user/hideip.me/main/http.txt", port: "8080", yield: 0.02 },
+  { id: "jetkai-http", protocol: "http", url: "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt", port: "8080", yield: 0.02 },
+  { id: "jetkai-https", protocol: "https", url: "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-https.txt", port: "443", yield: 0.02 },
+  { id: "clarketm", protocol: "http", url: "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt", port: "8080", yield: 0.02 },
+  { id: "proxifly-http", protocol: "http", url: "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/http/data.txt", port: "8080", yield: 0.01 },
+  { id: "roosterkid-https", protocol: "https", url: "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt", port: "443", yield: 0.01 },
 ];
+
+/**
+ * Sumber yang paling produktif (diurutkan by yield historis).
+ * Pakai ini untuk mode harvest: cek sumber high-yield dulu.
+ */
+export const SOURCES_BY_YIELD = [...SOURCES].sort((a, b) => (b.yield || 0) - (a.yield || 0));
 
 export const GEO_SOURCES = [
   { id: "geonode", protocol: "http", url: "http://proxylist.geonode.com/api/proxy-list?limit=500&page=1&sort_by=lastChecked&sort_type=desc" },
@@ -127,20 +145,34 @@ export function parseList(text, defaultPort = "443", protocol = "http") {
  * Download satu sumber list.
  * @returns {Promise<{id:string, ok:boolean, count:number, error:string|null}>}
  */
-export async function fetchSource(source) {
-  try {
-    const res = await fetch(source.url, {
-      signal: AbortSignal.timeout(20000),
-      headers: { "User-Agent": "Mozilla/5.0 (proxy-standalone)" },
-    });
-    if (!res.ok) return { id: source.id, ok: false, count: 0, error: `HTTP ${res.status}` };
-    const text = await res.text();
-    const protocol = source.protocol || "http";
-    const parsed = parseList(text, source.port, protocol);
-    return { id: source.id, ok: true, count: parsed.length, error: null, parsed };
-  } catch (err) {
-    return { id: source.id, ok: false, count: 0, error: err?.message || String(err) };
+export async function fetchSource(source, { retries = 2 } = {}) {
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(source.url, {
+        signal: AbortSignal.timeout(25000),
+        headers: {
+          "User-Agent": "Mozilla/5.0 (proxy-standalone)",
+          "Accept": "text/plain, */*",
+        },
+      });
+      if (!res.ok) {
+        lastErr = `HTTP ${res.status}`;
+        // 404 = tidak ada retry, 429/5xx = retry
+        if (res.status === 404) return { id: source.id, ok: false, count: 0, error: lastErr };
+        await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+        continue;
+      }
+      const text = await res.text();
+      const protocol = source.protocol || "http";
+      const parsed = parseList(text, source.port, protocol);
+      return { id: source.id, ok: true, count: parsed.length, error: null, parsed };
+    } catch (err) {
+      lastErr = err?.message || String(err);
+      await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+    }
   }
+  return { id: source.id, ok: false, count: 0, error: lastErr };
 }
 
 /**
@@ -152,7 +184,12 @@ export async function fetchAllSources(onlyIds = null) {
     ? SOURCES.filter((s) => onlyIds.includes(s.id))
     : SOURCES;
 
-  const results = await Promise.all(list.map(fetchSource));
+  // Sequential + jeda: GitHub raw rate limit kalau parallel many sources
+  const results = [];
+  for (const src of list) {
+    results.push(await fetchSource(src));
+    await new Promise((r) => setTimeout(r, 250));
+  }
   const merged = new Map();
   for (const r of results) {
     if (!r.parsed) continue;

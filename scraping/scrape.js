@@ -22,7 +22,7 @@ import { select, upsertBulk, requireColumns, filterToColumns } from "../core/db.
 import { checkOne, workerCompatCheck, tcpCheck } from "../core/checker.js";
 import { geoLookup } from "../core/geo.js";
 import { pool } from "../core/pool.js";
-import { fetchAllSources, SOURCES } from "../core/sources.js";
+import { fetchAllSources, fetchSource, SOURCES, SOURCES_BY_YIELD } from "../core/sources.js";
 
 const C = {
   green: (s) => `\x1b[32m${s}\x1b[0m`,
@@ -36,7 +36,7 @@ const C = {
 function parseArgs(argv) {
   const out = {
     limit: 1000, check: true, geo: true, dryRun: false, shallow: false,
-    list: false, file: "", only: [],
+    list: false, file: "", only: [], harvest: false, top: 0,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -48,6 +48,8 @@ function parseArgs(argv) {
     else if (a === "--list") out.list = true;
     else if (a === "--file") out.file = argv[++i] || "";
     else if (a === "--source") out.only.push(...String(argv[++i] || "").split(","));
+    else if (a === "--harvest") out.harvest = true;
+    else if (a === "--top") out.top = Number(argv[++i] || 0);
     else if (a === "--help" || a === "-h") out.help = true;
   }
   return out;
@@ -59,6 +61,9 @@ ${C.bold("Proxy Scraper")} - cari proxy gratis yang hidup
 
   node scraping/scrape.js [opsi]
 
+  --harvest       mode harvest: fokus sumber high-yield, cek sampai dapat
+                  N proxy hidup (default unlimited), simpan semua
+  --top N         target jumlah proxy hidup (untuk mode --harvest)
   --limit N       jumlah proxy yang dicek (default 1000)
   --no-check      lewati cek, simpan semua hasil scrape
   --shallow       cek TCP connect saja (cepat)
@@ -74,6 +79,174 @@ ${SOURCES.map((s) => `    ${s.id.padEnd(22)} ${s.url}`).join("\n")}
 `);
 }
 
+/**
+ * Mode harvest.
+ *
+ * Cek sumber satu per satu (urut by yield historis, high-yield dulu).
+ * Setiap sumber di-cek sample dulu; kalau yield-nya bagus, cek sisanya.
+ * Berhenti saat target proxy hidup tercapai.
+ */
+async function harvest(args) {
+  const target = args.top || 0; // 0 = unlimited
+  const found = [];
+  const seen = new Set();
+  let checked = 0;
+
+  console.log(C.bold(C.cyan("\n\n🌾 MODE HARVEST\n")));
+  console.log(C.dim(`   Target: ${target || "unlimited"} proxy hidup`));
+  console.log(C.dim(`   Konkurensi: ${CONFIG.concurrency}\n`));
+
+  for (const src of SOURCES_BY_YIELD) {
+    if (target && found.length >= target) break;
+
+    const r = await fetchSource(src);
+    if (!r.ok || !r.parsed || !r.parsed.length) {
+      console.log(C.dim(`   ${src.id.padEnd(20)} GAGAL (${r.error || "kosong"})`));
+      await new Promise((res) => setTimeout(res, 300));
+      continue;
+    }
+
+    // fresh candidate dari sumber ini
+    const cands = r.parsed.filter((p) => {
+      const key = `${p.ip}:${p.port}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (!cands.length) continue;
+
+    // tahap 1: sample kecil untuk ukur yield
+    const probeSize = Math.min(50, cands.length);
+    const probe = cands.slice(0, probeSize);
+
+    const probeRes = await pool(probe, CONFIG.concurrency, async (p) => {
+      const res = await workerCompatCheck(p.ip, p.port);
+      return { ...p, ok: res.ok, ms: res.ms ?? null, err: res.err || null };
+    });
+
+    const probeOk = probeRes.filter((x) => x && x.ok);
+    const yieldRate = probeOk.length / probe.length;
+    checked += probe.length;
+
+    console.log(
+      `   ${C.cyan(src.id.padEnd(20))} ${String(cands.length).padStart(6)} proxy  ` +
+      `probe ${probeOk.length}/${probe.length} (${(yieldRate * 100).toFixed(0)}%)`
+    );
+
+    found.push(...probeOk);
+
+    // tahap 2: cek sisa per chunk, berhenti begitu target tercapai
+    if (yieldRate >= 0.05 && cands.length > probeSize) {
+      const rest = cands.slice(probeSize);
+      const CHUNK = 400;
+      for (let i = 0; i < rest.length; i += CHUNK) {
+        if (target && found.length >= target) break;
+        const chunk = rest.slice(i, i + CHUNK);
+        const chunkRes = await pool(chunk, CONFIG.concurrency, async (p) => {
+          const res = await workerCompatCheck(p.ip, p.port);
+          return { ...p, ok: res.ok, ms: res.ms ?? null, err: res.err || null };
+        });
+        const chunkOk = chunkRes.filter((x) => x && x.ok);
+        checked += chunk.length;
+        found.push(...chunkOk);
+        console.log(C.dim(`     chunk ${i + CHUNK}/${rest.length}: +${chunkOk.length} (total ${found.length})`));
+      }
+    }
+
+    if (target) {
+      console.log(C.dim(`   Total hidup sekarang: ${found.length}/${target}`));
+    }
+    await new Promise((res) => setTimeout(res, 300));
+  }
+
+  console.log(C.bold(`\n   Total dicek: ${checked}  |  Hidup: ${found.length}\n`));
+
+  // Lanjut ke pipeline simpan: set alive = found
+  return await saveHarvest(found, args);
+}
+
+/** Simpan hasil harvest ke DB (geo + upsert). */
+async function saveHarvest(found, args) {
+  if (!found.length) {
+    console.log(C.red("   Tidak ada proxy hidup. Selesai.\n"));
+    return;
+  }
+
+  // Buang yang lambat
+  const good = found.filter((p) => p.ms === null || p.ms <= CONFIG.pingOk);
+  console.log(C.dim(`   Setelah filter ping <= ${CONFIG.pingOk}ms: ${good.length} proxy\n`));
+
+  if (args.geo !== false) {
+    console.log(C.dim(`   Geolokasi ${good.length} IP...`));
+    const geo = await geoLookup(good.map((p) => p.ip));
+    for (const p of good) {
+      const g = geo.get(p.ip);
+      p.country = g?.country || null;
+      p.org = g?.org || null;
+    }
+    console.log(C.dim(`   ${good.filter((p) => p.country).length}/${good.length} dapat geolokasi\n`));
+  }
+
+  if (args.dryRun) {
+    console.log(C.yellow("   Dry run - tidak menulis.\n"));
+    good.slice(0, 15).forEach((p) =>
+      console.log(C.dim(`     ${p.ip}:${p.port}  ${p.country || "??"}  ${p.ms ?? "-"}ms`))
+    );
+    console.log("");
+    return;
+  }
+
+  console.log(C.cyan("   Menyimpan ke database..."));
+  let cols;
+  try {
+    cols = await requireColumns("proxy_pool");
+  } catch (e) {
+    console.log(C.red(`   Error: ${e.message}`));
+    process.exit(1);
+  }
+
+  const now = new Date().toISOString();
+  const rows = good.map((p) =>
+    filterToColumns(
+      {
+        ip: p.ip,
+        port: p.port,
+        country: p.country ?? null,
+        org: p.org ?? null,
+        protocol: p.protocol || "http",
+        is_active: true,
+        check_ok: true,
+        check_stage: p.protocol || "http",
+        ping: typeof p.ms === "number" ? p.ms : null,
+        last_checked: now,
+      },
+      cols
+    )
+  );
+
+  const { error } = await upsertBulk("proxy_pool", rows, "ip,port");
+  if (error) {
+    console.log(C.red(`   Error simpan: ${error}`));
+    process.exit(1);
+  }
+  console.log(C.green(`   ${rows.length} proxy tersimpan.\n`));
+
+  const byCountry = new Map();
+  for (const p of good) {
+    const c = p.country || "??";
+    byCountry.set(c, (byCountry.get(c) || 0) + 1);
+  }
+  const top = [...byCountry.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15);
+  if (top.length) {
+    console.log(C.bold("   Distribusi negara:\n"));
+    for (const [cc, n] of top) {
+      const bar = "\u2588".repeat(Math.min(30, Math.ceil(n / 5)));
+      console.log(C.dim(`   ${cc}  ${String(n).padStart(4)}  ${C.cyan(bar)}`));
+    }
+    console.log("");
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) return usage();
@@ -81,6 +254,11 @@ async function main() {
   if (!args.list) requireSupabase();
 
   console.log(C.bold(C.cyan("\n🌐 Proxy Scraper\n")));
+
+  // Mode harvest: kerja per-sumber, tanpa merge semua (lebih cepat)
+  if (args.harvest) {
+    return await harvest(args);
+  }
 
   // 1. Ambil semua sumber
   console.log(C.dim("   Mengambil daftar proxy dari sumber..."));

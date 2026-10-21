@@ -1,6 +1,6 @@
 # Proxy Standalone
 
-Tooling mandiri untuk cari dan verifikasi proxy gratis. **Nol dependency** (cuma Node.js built-in), **nihil API pihak ketiga** untuk pengecekan proxy.
+Tooling mandiri untuk cari dan verifikasi proxy gratis. **Nol dependency** cuma Node.js built-in), **nihil API pihak ketiga** untuk pengecekan proxy.
 
 ## Kenapa mandiri?
 
@@ -10,9 +10,9 @@ Checker bawaan project CFVPN Hub sebelumnya pakai API pihak ketiga:
 https://id1.foolvpn.web.id/api/v1/check?ip=...
 ```
 
-Endpoint itu sekarang **mati** (timeout 8 detik, tidak merespons). Akibatnya status `is_active` di database jadi basi — 2162 proxy ditandai "aktif" padahal `last_checked` sudah 2 bulan lalu. User pun sering dapat proxy mati.
+Endpoint itu sekarang **mati** timeout 8 detik, tidak merespons). Akibatnya status `is_active` di database jadi basi — 2162 proxy ditandai "aktif" padahal `last_checked` sudah 2 bulan lalu. User pun sering dapat proxy mati.
 
-Tool ini mengganti ketergantungan itu: cek proxy langsung lewat **TCP socket** dari Node, plus handshake protokol yang sesuai (HTTP CONNECT / SOCKS4 / SOCKS5).
+Tool ini mengganti ketergantungan itu: cek proxy langsung lewat **TCP socket** dari Node, plus handshake protokol yang sesuai HTTP CONNECT / SOCKS4 / SOCKS5).
 
 ## Struktur
 
@@ -20,9 +20,9 @@ Tool ini mengganti ketergantungan itu: cek proxy langsung lewat **TCP socket** d
 Proxy/
 ├── core/                  # shared, nol dependency
 │   ├── config.js          # loader .env + konfigurasi
-│   ├── db.js              # client Supabase REST (fetch bawaan)
+│   ├── db.js              # client Supabase REST fetch bawaan)
 │   ├── checker.js         # TCP + HTTP CONNECT + SOCKS4/5 + worker-compat
-│   ├── geo.js             # geolokasi country/ISP (batch)
+│   ├── geo.js             # geolokasi country/ISP batch)
 │   ├── pool.js            # limiter konkurensi
 │   └── sources.js         # daftar list proxy gratis + filter IP CDN
 ├── Checker/
@@ -38,7 +38,7 @@ Proxy/
 ├── run-check.bat          # wrapper untuk Task Scheduler
 ├── run-scrape.bat         # wrapper untuk Task Scheduler
 ├── schema.sql             # kolom baru untuk proxy_pool
-├── setup-supabase.sql     # SQL siap salin (gabungan)
+├── setup-supabase.sql     # SQL siap salin gabungan)
 ├── package.json
 └── .env.example
 ```
@@ -50,11 +50,11 @@ node cli.js
 ```
 
 ```
-1. Scrape proxy baru   (cek + simpan ke DB)
-2. Cek proxy di DB     (update status)
-3. Lihat status sumber  (cek list tersedia)
+1. Scrape proxy baru   cek + simpan ke DB)
+2. Cek proxy di DB     update status)
+3. Lihat status sumber  cek list tersedia)
 4. Test kompatibilitas worker
-5. Setup database     (tambah kolom)
+5. Setup database     tambah kolom)
 0. Keluar
 ```
 
@@ -70,11 +70,11 @@ Isi `.env`:
 ```env
 SUPABASE_URL=https://xxxx.supabase.co
 SUPABASE_ANON_KEY=eyJ...
-# WAJIB untuk update status proxy (bypass RLS)
+# WAJIB untuk update status proxy bypass RLS)
 SUPABASE_SERVICE_KEY=eyJ...
 ```
 
-Lalu jalankan `schema.sql` di Supabase SQL Editor (tambah kolom `protocol`, `check_ok`, `check_stage` + index).
+Lalu jalankan `schema.sql` di Supabase SQL Editor tambah kolom `protocol`, `check_ok`, `check_stage` + index).
 
 ## Pemakaian
 
@@ -86,7 +86,7 @@ node scraping/scrape.js --limit 5000          # cek 5000 proxy
 node scraping/scrape.js --list                # hanya lihat status sumber
 node scraping/scrape.js --source speedx-http,jetkai
 node scraping/scrape.js --no-check            # simpan semua tanpa cek
-node scraping/scrape.js --shallow             # cek TCP saja (cepat)
+node scraping/scrape.js --shallow             # cek TCP saja cepat)
 node scraping/scrape.js --no-geo              # lewati geolokasi
 node scraping/scrape.js --dry-run             # tidak tulis DB
 node scraping/scrape.js --file proxies.txt    # sekalian tulis ke file
@@ -96,7 +96,7 @@ node scraping/scrape.js --file proxies.txt    # sekalian tulis ke file
 
 ```bash
 node Checker/check.js                  # cek semua
-node Checker/check.js --limit 500      # sample 500 (acak)
+node Checker/check.js --limit 500      # sample 500 acak)
 node Checker/check.js --shallow        # TCP only
 node Checker/check.js --dead 300       # tandai 300 proxy paling lama dicek sbg mati
 node Checker/check.js --dry-run        # tidak tulis DB
@@ -110,7 +110,7 @@ Tiga lapis, sesuai cara worker VPN memakai proxy:
 |---|---|---|
 | 1 | TCP connect ke `ip:port` | port hidup? |
 | 2 | Handshake proxy | benar-benar proxy yang bisa forward? |
-| 3 | Latency | berapa ms (relevan untuk tunnel) |
+| 3 | Latency | berapa ms relevan untuk tunnel) |
 
 Handshake per protokol:
 
@@ -118,14 +118,14 @@ Handshake per protokol:
 - **SOCKS5** — greeting `05 01 00`, lalu `CONNECT` ke 1.1.1.1:443, expect rep `0x00`
 - **SOCKS4** — request `0x04 0x01` + port + IP + userid, expect `0x5A`
 
-Proxy yang TCP-nya hidup tapi handshake gagal ditandai **mati** (`check_ok=false`). Ini yang sebelumnya bikin proxy "aktif tapi mati" lolos ke user.
+Proxy yang TCP-nya hidup tapi handshake gagal ditandai **mati** `check_ok=false`). Ini yang sebelumnya bikin proxy "aktif tapi mati" lolos ke user.
 
 ### Fakta penting soal list proxy gratis
 
-Ditemukan saat pengujian (21 Okt 2026, sample 600 proxy):
+Ditemukan saat pengujian 21 Okt 2026, sample 600 proxy):
 
 ```
-  hidup              : 8 / 600   (1.3%)
+  hidup              : 8 / 600   1.3%)
   http-400           : 234       <- Cloudflare/CDN, bukan proxy
   http-timeout       : 237
   socks5-timeout     : 11
@@ -136,7 +136,7 @@ Ditemukan saat pengujian (21 Okt 2026, sample 600 proxy):
 
 Filter IP CDN di `core/sources.js` membuang IP Anycast Cloudflare/Fastly/Google sebelum cek, supaya tidak buang waktu. Sisa yang lolos dideteksi lagi dari respons HTTP.
 
-**Konsekuensi:** rate hitRate proxy gratis yang benar-benar bisa dipakai worker cuma ~1%. Butuh sample besar (4000+) supaya dapat-proxy yang cukup.
+**Konsekuensi:** rate hitRate proxy gratis yang benar-benar bisa dipakai worker cuma ~1%. Butuh sample besar 4000+) supaya dapat-proxy yang cukup.
 
 Kolom yang ditulis:
 
@@ -152,7 +152,7 @@ Kolom `protocol`, `check_ok`, `check_stage` belum ada di Supabase project `cgflr
 
 ## Sumber list
 
-14 sumber GitHub aktif (dicek terakhir 21 Okt 2026, ~29.000 proxy unik):
+14 sumber GitHub aktif dicek terakhir 21 Okt 2026, ~29.000 proxy unik):
 
 ```
 speedx-http  speedx-socks5  monosans-http  monosans-socks5
@@ -164,7 +164,7 @@ Tambah sumber baru: edit `core/sources.js`, tambahkan `{ id, protocol, url, port
 
 ## Rasio hidup
 
-Ditemukan saat pengujian (21 Okt 2026):
+Ditemukan saat pengujian 21 Okt 2026):
 
 | Sample | Hidup | Rate | Keterangan |
 |--------|-------|------|------------|
@@ -172,7 +172,7 @@ Ditemukan saat pengujian (21 Okt 2026):
 | 600 | 8 | 1.3% | dengan filter CDN |
 | 4000 | 14 | 0.35% | sampel besar,+SOCKS5 dominan |
 
-Semuanya **SOCKS5** (port 1080 / 9050). HTTP proxy gratis nyaris tidak ada yang benar-benar bisa forward — majority "proxy" di list itu Cloudflare/CDN edge, bukan proxy.
+Semuanya **SOCKS5** port 1080 / 9050). HTTP proxy gratis nyaris tidak ada yang benar-benar bisa forward — majority "proxy" di list itu Cloudflare/CDN edge, bukan proxy.
 
 Untuk jumlah proxy yang layak dipakai, jalankan scrape dengan limit besar:
 
@@ -180,7 +180,7 @@ Untuk jumlah proxy yang layak dipakai, jalankan scrape dengan limit besar:
 node scraping/scrape.js --limit 4000
 ```
 
-Hasil realistis: **10-20 proxy hidup** per scrape besar. Untuk produksi, jalankan scheduler harian (lihat `run-scrape.bat`).
+Hasil realistis: **10-20 proxy hidup** per scrape besar. Untuk produksi, jalankan scheduler harian lihat `run-scrape.bat`).
 
 ## Pembersihan data basi
 
@@ -190,7 +190,7 @@ Proxy yang di-markup "aktif" tapi belum dicek > 6 jam harus ditandai mati, supay
 node Checker/check.js --stale 6
 ```
 
-Perintah ini berdiri sendiri (tidak lanjut cek proxy).
+Perintah ini berdiri sendiri tidak lanjut cek proxy).
 
 ## Integrasi CFVPN Hub
 
@@ -198,12 +198,12 @@ Checker ini mengisi kolom `proxy_pool` yang dibaca generator CFVPN Hub. Supaya g
 
 ```js
 // sebelum: hanya is_active
-supabase.from('proxy_pool').select('*').eq('is_active', true)
+supabase.from'proxy_pool').select'*').eq'is_active', true)
 // sesudah: hanya is_active + ping bagus + checked segar
-supabase.from('proxy_pool').select('*')
-  .eq('is_active', true)
-  .lt('ping', 800)
-  .gt('last_checked', new Date(Date.now() - 2 * 3600e3).toISOString())
+supabase.from'proxy_pool').select'*')
+  .eq'is_active', true)
+  .lt'ping', 800)
+  .gt'last_checked', new DateDate.now) - 2 * 3600e3).toISOString))
 ```
 
 ## Author
@@ -211,7 +211,7 @@ supabase.from('proxy_pool').select('*')
 **jhopanstore**
 
 
-## Cron Otomatis (Windows Task Scheduler)
+## Cron Otomatis Windows Task Scheduler)
 
 Supaya proxy selalu fresh, jalankan checker tiap 30 menit:
 
@@ -227,17 +227,17 @@ Daftarkan lewat Task Scheduler:
 - Action: `C:\Users\ACER\Documents\Project\Proxy\run-check.bat`
 - Start in: `C:\Users\ACER\Documents\Project\Proxy`
 
-Scrape baru minimal 1x sehari (proxy gratis cepat mati):
+Scrape baru minimal 1x sehari proxy gratis cepat mati):
 
 ```bat
 node scraping\scrape.js --limit 2000 >> logs\scrape.log 2>&1
 ```
 
-## Integrasi CFVPN Hub (lanjutan)
+## Integrasi CFVPN Hub lanjutan)
 
 Panel CFVPN Hub sudah di-patch supaya generator hanya memakai proxy yang:
 - `is_active = true`
-- `last_checked` < 6 jam (fresh)
-- ping bagus (limit 800ms, opsional)
+- `last_checked` < 6 jam fresh)
+- ping bagus limit 800ms, opsional)
 
-Worker VPN sudah di-patch supaya `prxIP` per-koneksi (sebelumnya global, jadi user saling menimpa proxy).
+Worker VPN sudah di-patch supaya `prxIP` per-koneksi sebelumnya global, jadi user saling menimpa proxy).
