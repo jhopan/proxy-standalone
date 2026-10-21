@@ -1,0 +1,16 @@
+{
+  "name": "proxy-standalone",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone proxy scraper + checker (mandiri, tanpa API pihak ketiga untuk cek proxy)",
+  "scripts": {
+    "check": "node Checker/check.js",
+    "scrape": "node scraping/scrape.js",
+    "check:all": "node Checker/check.js --all",
+    "scrape:full": "node scraping/scrape.js --source all --limit 5000 --check --save"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
