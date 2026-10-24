@@ -15,7 +15,7 @@
 
 import { CONFIG, requireSupabase, HAS_SERVICE_KEY } from "../core/config.js";
 import { select, selectAll, update, requireColumns, filterToColumns } from "../core/db.js";
-import { checkOne, workerCompatCheck, tcpCheck } from "../core/checker.js";
+import { checkOne, workerCompatCheck, tcpCheck, internetCheck } from "../core/checker.js";
 import { pool } from "../core/pool.js";
 
 const C = {
@@ -28,7 +28,7 @@ const C = {
 };
 
 function parseArgs(argv) {
-  const out = { limit: 0, dead: 0, stale: 0, staleOnly: false, shallow: false, dryRun: false, all: false };
+  const out = { limit: 0, dead: 0, stale: 0, staleOnly: false, shallow: false, dryRun: false, all: false, internet: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--limit") out.limit = Number(argv[++i] || 0);
@@ -36,6 +36,7 @@ function parseArgs(argv) {
     else if (a === "--stale") { out.stale = Number(argv[++i] || 0); out.staleOnly = true; }
     else if (a === "--stale-then-check") out.stale = Number(argv[++i] || 0);
     else if (a === "--shallow") out.shallow = true;
+    else if (a === "--internet") out.internet = true;
     else if (a === "--dry-run") out.dryRun = true;
     else if (a === "--all") out.all = true;
     else if (a === "--help" || a === "-h") out.help = true;
@@ -51,7 +52,8 @@ ${C.bold("Proxy Checker")} - cek status proxy di Supabase
 
   --limit N     cek N proxy (acak). 0 = semua
   --dead N      tandai N proxy paling lama dicek sebagai mati
-  --shallow     hanya TCP connect (cepat, tanpa uji forward)
+  --internet    verifikasi tambahan: proxy harus bisa buka TLS keluar
+  --shallow     hanya ukur port (TIDAK menandai aktif)
   --dry-run     tidak menulis hasil ke database
   --all         cek semua proxy
   --help        tampilkan bantuan ini
@@ -203,18 +205,37 @@ async function main() {
     targets,
     CONFIG.concurrency,
     async (row) => {
+      // shallow hanya ukur port. JANGAN menandai aktif: port terbuka bukan
+      // bukti proxy (banyak web server/CDN punya port terbuka).
       if (args.shallow) {
         const t = await tcpCheck(row.ip, row.port);
-        return { row, is_active: t.ok, ping: t.ms, check_ok: t.ok, check_stage: "tcp", err: t.err };
+        return { row, is_active: false, ping: t.ms, check_ok: false, check_stage: "tcp-only", err: t.err || "shallow" };
       }
+
       const r = await workerCompatCheck(row.ip, row.port);
+      let ok = r.ok;
+      let err = r.err || null;
+      let stage = r.proto || "fail";
+
+      // --internet: verifikasi tambahan, benar-benar bisa buka TLS keluar.
+      if (ok && args.internet) {
+        const net = await internetCheck(row.ip, row.port, r.proto);
+        if (!net.ok) {
+          ok = false;
+          stage = "internet";
+          err = "tunnel-ok-but-" + (net.err || "no-internet");
+        } else {
+          stage = r.proto + "+net";
+        }
+      }
+
       return {
         row,
-        is_active: r.ok,
+        is_active: ok,
         ping: r.ms ?? null,
-        check_ok: r.ok,
-        check_stage: r.ok ? "ok" : (r.err || "fail").split(":")[0],
-        err: r.err || null,
+        check_ok: ok,
+        check_stage: stage,
+        err,
       };
     },
     (done, total, r) => {

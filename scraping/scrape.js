@@ -305,20 +305,21 @@ async function main() {
       candidates,
       CONFIG.concurrency,
       async (p) => {
-        // Cek kompatibilitas worker: proxy HTTP/SOCKS5 yang benar-benar bisa forward
+        // shallow = hanya port. Tidak boleh menandai aktif (port terbuka bukan proxy).
         if (args.shallow) {
           const t = await tcpCheck(p.ip, p.port);
-          return { ...p, is_active: t.ok, ping: t.ms, check_ok: t.ok, check_stage: "tcp", err: t.err, protocol: p.protocol || "http" };
+          return { ...p, is_active: false, ping: t.ms, check_ok: false, check_stage: "tcp-only", err: t.err || "shallow", protocol: p.protocol || "http" };
         }
         const r = await workerCompatCheck(p.ip, p.port);
+        // protocol = hasil DETEKSI (bukan dari sumber list, itu tidak akurat).
         return {
           ...p,
           is_active: r.ok,
           ping: r.ms ?? null,
           check_ok: r.ok,
-          check_stage: r.err ? (r.err.startsWith("socks5") ? "socks5" : "http") : "ok",
+          check_stage: r.proto || "fail",
           err: r.err || null,
-          protocol: p.protocol || "http",
+          protocol: r.proto || p.protocol || "http",
         };
       },
       (done, total, r) => {

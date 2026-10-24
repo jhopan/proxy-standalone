@@ -36,7 +36,11 @@ test/            # benchmark + perbandingan protokol
 
 1. **Jangan** tambah dependency. Semua pakai Node built-in (`node:net`, `node:tls`, `fetch`).
 2. **Jangan** pakai API pihak ketiga untuk cek proxy. Cuma DB (Supabase) + geolokasi.
-3. Proxy checked = `workerCompatCheck`, bukan HTTP/SOCKS terpisah. Worker VPN fallback pakai handshake proxy (HTTP CONNECT / SOCKS5), jadi cuma proxy itu yang bisa dipakai.
+3. **Port terbuka BUKAN proxy.** Deteksi protokol dari RESPON (`detectProxy`), bukan dari nomor port. Proxy SOCKS5 sering di 443, proxy HTTP sering di 1080.
+   - `detectProxy(ip, port)` coba SOCKS5 -> SOCKS4 -> HTTP CONNECT, berhenti di yang berhasil.
+   - `workerCompatCheck` = wrapper `detectProxy`.
+   - `internetCheck(ip, port, proto)` bukti paling kuat: buka tunnel TLS ke cloudflare.com, tunggu ServerHello.
+   - `--shallow` hanya ukur port, **TIDAK boleh** menandai `is_active`.
 4. Ambang default: `pingOk` 3000ms, `pingGood` 1000ms. Proxy gratis lambat, jangan filter ketat.
 5. `db.js` wajib filter payload by available columns — PostgREST error kalau kirim kolom yang belum ada di DB.
 6. PostgREST `or=(a.is.null,b.lt.X)` tidak bisa parse → filter waktu di JS, bukan query.
@@ -61,7 +65,10 @@ Kolom `protocol`, `check_ok`, `check_stage` belum ada di project `cgflrpjavyotvo
 - Mayoritas "proxy" di list gratis = **IP Cloudflare/CDN**, bukan proxy. Balas `HTTP/1.1 400 Bad Request` + `Server: cloudflare`. Checker deteksi dari header `Server:` → label `cdn:<nama>`.
 - Proxy gratis **mati dalam hitungan menit**. ALIILAPRO 55% hidup → 20 menit kemudian 0%.
 - Yang hidup hampir semua **SOCKS5** (port 1080/9050).
-- Yield realistis: 0.35% – 1.3%. Sample 4000 → 14 proxy hidup.
+- Yield realistis (checker LAMA, false positive): 0.35% – 1.3%. Sample 4000 → 14.
+- Yield realistis (checker BARU, verifikasi handshake): ALIILAPRO **44%** (22/50 probe).
+  Sample 450 → 124 hidup → 67 tersimpan. Jauh lebih baik karena proxy palsu tersaring.
+- Verifikasi internet: 5/8 proxy tercepat benar-benar bisa buka TLS ke cloudflare.com.
 - `--harvest` wajib pakai: cek per sumber urut by yield, probe dulu, early-stop saat target tercapai.
 
 ## Verifikasi
